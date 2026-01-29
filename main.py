@@ -21,7 +21,7 @@ layout(location = 3) in vec3 aDeltaNorm1;
 layout(location = 4) in vec3 aDeltaPos2;
 layout(location = 5) in vec3 aDeltaNorm2;
 
-uniform float weight1; // Smile
+uniform float weight1; // surprise
 uniform float weight2; // Surprise
 uniform mat4 model;
 uniform mat4 view;
@@ -54,8 +54,8 @@ uniform vec3 lightColor;
 uniform vec3 objectColor;
 
 void main() {
-    // Ambient
-    float ambientStrength = 0.1;
+    // Ambient - Increase for softer shadows
+    float ambientStrength = 0.4;
     vec3 ambient = ambientStrength * lightColor;
     
     // Diffuse
@@ -64,11 +64,11 @@ void main() {
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diff * lightColor;
     
-    // Specular
-    float specularStrength = 0.5;
+    // Specular - Reduce for matte/smooth execution
+    float specularStrength = 0.2;
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16); // Softer highlight (16 instead of 32)
     vec3 specular = specularStrength * spec * lightColor;
     
     vec3 result = (ambient + diffuse + specular) * objectColor;
@@ -77,7 +77,7 @@ void main() {
 """
 
 # Global variables
-morph_weight1 = 0.0 # Smile
+morph_weight1 = 0.0 # surprise
 morph_weight2 = 0.0 # Surprise
 last_x = 400
 last_y = 300
@@ -119,7 +119,7 @@ def process_input(window):
     if glfw.get_key(window, glfw.KEY_ESCAPE) == glfw.PRESS:
         glfw.set_window_should_close(window, True)
     
-    # Morph Control 1 (Smile)
+    # Morph Control 1 (surprise)
     if glfw.get_key(window, glfw.KEY_RIGHT) == glfw.PRESS:
         morph_weight1 += 0.01
     if glfw.get_key(window, glfw.KEY_LEFT) == glfw.PRESS:
@@ -143,6 +143,7 @@ def main():
     glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, 3)
     glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, 3)
     glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+    glfw.window_hint(glfw.SAMPLES, 4) # 4x MSAA for smooth edges
 
     window = glfw.create_window(800, 600, "Face Morphing Demo", None, None)
     if not window:
@@ -162,11 +163,11 @@ def main():
     # Load Models
     print("Loading models...")
     base_mesh = load_obj("neutral.obj")
-    target_mesh1 = load_obj("smile_improved.obj")
-    target_mesh2 = load_obj("surprised_symmetric.obj")
+    target_mesh1 = load_obj("angry.obj")
+    target_mesh2 = load_obj("surprise.obj")
     
     if not base_mesh or not target_mesh1 or not target_mesh2:
-        print("Failed to load models. Please ensure neutral.obj, smile_improved.obj and surprised.obj exist.")
+        print("Failed to load models. Please ensure neutral.obj, surprise_improved.obj and surprised.obj exist.")
         glfw.terminate()
         return
 
@@ -276,7 +277,7 @@ def main():
         process_input(window)
 
         # Clear
-        glClearColor(0.2, 0.3, 0.3, 1.0)
+        glClearColor(0.53, 0.81, 0.92, 1.0) # Sky Blue background
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         # Activate Shader
@@ -305,7 +306,7 @@ def main():
         glUniform3f(glGetUniformLocation(shader_program, "lightPos"), 2.0, 2.0, 2.0)
         glUniform3f(glGetUniformLocation(shader_program, "viewPos"), camera_pos.x, camera_pos.y, camera_pos.z)
         glUniform3f(glGetUniformLocation(shader_program, "lightColor"), 1.0, 1.0, 1.0)
-        glUniform3f(glGetUniformLocation(shader_program, "objectColor"), 1.0, 0.5, 0.31) # Coral color
+        glUniform3f(glGetUniformLocation(shader_program, "objectColor"), 0.7, 0.7, 0.7) # Gray color
 
         # Draw
         glBindVertexArray(VAO)

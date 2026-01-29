@@ -35,9 +35,42 @@ def load_obj(filename):
                     for i in range(1, len(face_indices) - 1):
                         faces.append([face_indices[0], face_indices[i], face_indices[i+1]])
                     
-        return Mesh(np.array(vertices, dtype=np.float32), 
-                   np.array(normals, dtype=np.float32), 
-                   np.array(faces, dtype=np.int32))
+        # Compute Smooth Normals based on topology
+        # This ensures the face looks "smooth" regardless of how VN are stored in the file
+        vertices_array = np.array(vertices, dtype=np.float32)
+        faces_array = np.array(faces, dtype=np.int32)
+        
+        # Initialize normals
+        normals_array = np.zeros_like(vertices_array)
+        
+        # Accumulate face normals to vertices
+        for face in faces_array:
+            v0 = vertices_array[face[0]]
+            v1 = vertices_array[face[1]]
+            v2 = vertices_array[face[2]]
+            
+            # Cross product for face normal
+            edge1 = v1 - v0
+            edge2 = v2 - v0
+            face_normal = np.cross(edge1, edge2)
+            
+            # Weighted by area? Simple accumulation is usually fine for similar sized polys
+            # Normalize face normal first to weight by angle roughly? No, length of cross product is 2*Area. 
+            # Weighted by Area is good.
+            
+            normals_array[face[0]] += face_normal
+            normals_array[face[1]] += face_normal
+            normals_array[face[2]] += face_normal
+            
+        # Normalize result
+        # Avoid division by zero
+        norms = np.linalg.norm(normals_array, axis=1, keepdims=True)
+        norms[norms == 0] = 1.0
+        normals_array = normals_array / norms
+                    
+        return Mesh(vertices_array, 
+                   normals_array, 
+                   faces_array)
                    
     except FileNotFoundError:
         print(f"Error: File {filename} not found.")
